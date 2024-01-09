@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<head>
+  <title>drawjs</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <h1>Hello World!</h1>
+  <canvas id="myCanvas"></canvas>
+
+  <div id="controller">
+    <button onclick="dispose()">🗑️</button>
+    <button onclick="save()">💾</button>
+
+    &nbsp;
+
+    <button id="graphBtn" onclick="setMode('graph')">🌐</button>
+    <button id="stopBtn" onclick="setMode('stop')">🛑</button>
+    <button id="crossingBtn" onclick="setMode('crossing')">🚶</button>
+  </div>
+
+  <script src="js/world.js"></script>
+  <script src="js/viewport.js"></script>
+  <script src="js/markings/stop.js"></script>
+  <script src="js/markings/crossing.js"></script>
+  <script src="js/editors/crossingEditor.js"></script>
+  <script src="js/editors/graphEditor.js"></script>
+  <script src="js/editors/stopEditor.js"></script>
+  <script src="js/item/tree.js"></script>
+  <script src="js/item/building.js"></script>
+  <script src="js/math/utils.js"></script>
+  <script src="js/math/graph.js"></script>
+  <script src="js/primitives/point.js"></script>
+  <script src="js/primitives/line.js"></script>
+  <script src="js/primitives/polygon.js"></script>
+  <script src="js/primitives/envelope.js"></script>
+  <script>
+    myCanvas.width = 1000
+    myCanvas.height = 800
+    const ctx = myCanvas.getContext("2d")
+
+    const graphStr = localStorage.getItem("graph")
+    const graphInfo = graphStr ? JSON.parse(graphStr) : null
+    const graph = graphInfo ? Graph.load(graphInfo) : new Graph()
+
+    const world = new World(graph)
+
+    const viewport = new Viewport(myCanvas)
+    const graphEditor = new GraphEditor(viewport, graph)
+    const stopEditor = new StopEditor(viewport, world)
+    const crossingEditor = new CrossingEditor(viewport, world)
+
+    let oldGraphHash = graph.hash()
+    setMode("graph")
+
+    animate()
+    function animate() {
+      viewport.reset()
+
+      if (graph.hash() != oldGraphHash) {
+        world.generate()
+        oldGraphHash = graph.hash()
+      }
+
+      const viewPoint = scale(viewport.getOffset(), -1)
+      world.draw(ctx, viewPoint)
+      ctx.globalAlpha = 0.3
+      graphEditor.display()
+      stopEditor.display()
+      crossingEditor.display()
+      requestAnimationFrame(animate)
+    }
+
+    function dispose() {
+      graphEditor.dispose()
+      world.markings.length = 0
+    }
+
+    function save() {
+      localStorage.setItem("graph", JSON.stringify(graph))
+    }
+
+    function setMode(mode) {
+      disableEditors()
+      switch (mode) {
+        case "graph":
+          graphBtn.style.backgroundColor = "white"
+          graphBtn.style.filter = ""
+          graphEditor.enable()
+          break
+        case "stop":
+          stopBtn.style.backgroundColor = "white"
+          stopBtn.style.filter = ""
+          stopEditor.enable()
+          break
+        case "crossing":
+          crossingBtn.style.backgroundColor = "white"
+          crossingBtn.style.filter = ""
+          crossingEditor.enable()
+          break
+      }
+    }
+    function disableEditors() {
+      graphBtn.style.backgroundColor = "gray"
+      graphBtn.style.filter = "grayscale(100%)"
+      graphEditor.disable()
+      stopBtn.style.backgroundColor = "gray"
+      stopBtn.style.filter = "grayscale(100%)"
+      stopEditor.disable()
+      crossingBtn.style.backgroundColor = "gray"
+      crossingBtn.style.filter = "grayscale(100%)"
+      crossingEditor.disable()
+    }
+  </script>
+</body>
+</html>
